@@ -1,71 +1,215 @@
 // app/page.tsx
 import { getCategories } from '@/app/lib/actions/categories/get'
+import { getDocuments } from '@/app/lib/actions/documents/get'
 import MapClientWrapper from './components/MapClientWrapper'
+import Link from 'next/link'
+import Image from 'next/image'
+import { generateColorById } from '@/app/utils/colorGenerator'
+import { FiMap, FiFileText, FiFilter, FiInfo } from 'react-icons/fi'
 
 export default async function HomePage() {
-  const categories = await getCategories()
+  const [categories, documents] = await Promise.all([
+    getCategories(),
+    getDocuments()
+  ])
+
+  // จัดกลุ่มเอกสารตามจังหวัด
+  const provinceGroups = documents.reduce((acc, doc) => {
+    if (!acc[doc.province]) {
+      acc[doc.province] = { count: 0, documents: [] };
+    }
+    acc[doc.province].count += 1;
+    acc[doc.province].documents.push(doc);
+    return acc;
+  }, {} as Record<string, { count: number, documents: any[] }>);
+
+  // เรียงลำดับจังหวัดตามจำนวนเอกสาร
+  const topProvinces = Object.entries(provinceGroups)
+    .sort(([, a], [, b]) => b.count - a.count)
+    .slice(0, 5);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
-      <div className="container mx-auto p-4">
+    <main className="min-h-screen pt-16 bg-gradient-to-br from-white to-gray-50"> {/* pt-16 เพิ่มพื้นที่ด้านบนสำหรับ Navbar */}
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-r from-orange-600 to-orange-400 text-white pt-16 pb-32 px-4 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10">
+          <div className="w-full h-full bg-[url('/images/map-pattern.png')] bg-repeat bg-center"></div>
+        </div>
+        <div className="container mx-auto relative z-10">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">ระบบแผนที่เอกสาร SDN</h1>
+            <p className="text-lg md:text-xl opacity-90 mb-8">
+              เข้าถึงเอกสารสำคัญได้อย่างง่ายดาย ด้วยการนำเสนอในรูปแบบแผนที่ที่เข้าใจง่าย
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link 
+                href="/dashboard/map" 
+                className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-lg font-medium hover:bg-gray-100 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <FiMap className="w-5 h-5" />
+                <span>จัดการเอกสาร</span>
+              </Link>
+              <Link 
+                href="/dashboard/documents" 
+                className="flex items-center gap-2 px-6 py-3 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition"
+              >
+                <FiFileText className="w-5 h-5" />
+                <span>ดูเอกสารทั้งหมด</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* สถิติสรุป */}
+      <div className="container mx-auto px-4 -mt-16 mb-12 relative z-20">
+        <div className="bg-white rounded-xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-800">
+          <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
+            <p className="text-4xl font-bold text-orange-500 mb-1">{documents.length}</p>
+            <p className="text-gray-600">เอกสารทั้งหมด</p>
+          </div>
+          <div className="text-center p-4 border-b md:border-b-0 md:border-r border-gray-100">
+            <p className="text-4xl font-bold text-orange-500 mb-1">{categories.length}</p>
+            <p className="text-gray-600">ประเภทเอกสาร</p>
+          </div>
+          <div className="text-center p-4">
+            <p className="text-4xl font-bold text-orange-500 mb-1">{Object.keys(provinceGroups).length}</p>
+            <p className="text-gray-600">จังหวัดที่มีข้อมูล</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Map Section */}
+      <div className="container mx-auto px-4 mb-16">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 h-[calc(100vh-2rem)] bg-white rounded-xl shadow-md overflow-hidden border border-slate-200">
-            <MapClientWrapper categories={categories} />
+          <div className="lg:col-span-3 h-[550px] bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+            <MapClientWrapper categories={categories} simplified={true} />
           </div>
           
-          {/* ส่วนของสรุปข้อมูล */}
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-xl shadow-md border border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4">ข้อมูลประเภทเอกสาร</h2>
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+                  <FiFilter className="w-5 h-5" />
+                </span>
+                ประเภทเอกสาร
+              </h2>
               
-              <div className="space-y-3">
-                {categories.map(category => (
-                  <div key={category.id} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div 
-                        className="w-4 h-4 rounded-full mr-2"
-                        style={{ 
-                          backgroundColor: 
-                            category.id === 1 ? '#f97316' : 
-                            category.id === 2 ? '#64748b' : 
-                            category.id === 3 ? '#4b5563' :
-                            category.id === 4 ? '#3b82f6' :
-                            category.id === 5 ? '#6366f1' :
-                            category.id === 6 ? '#475569' :
-                            '#64748b'
-                        }}
-                      ></div>
-                      <span className="text-slate-700">{category.name}</span>
+              <div className="space-y-4">
+                {categories.map(category => {
+                  const color = generateColorById(category.id).primary;
+                  const count = documents.filter(d => d.categoryId === category.id).length;
+                  return (
+                    <div key={category.id} className="flex items-center justify-between group">
+                      <div className="flex items-center">
+                        <div 
+                          className="w-4 h-4 rounded-full mr-2 group-hover:scale-125 transition-transform"
+                          style={{ backgroundColor: color }}
+                        ></div>
+                        <span className="text-gray-700">{category.name}</span>
+                      </div>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {count} รายการ
+                      </span>
                     </div>
-                    <span className="bg-orange-50 text-orange-600 text-xs px-2 py-1 rounded-full">
-                      {category._count?.documents || 0} รายการ
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+                  <FiMap className="w-5 h-5" />
+                </span>
+                พื้นที่ยอดนิยม
+              </h2>
+              <div className="space-y-4">
+                {topProvinces.map(([province, data], index) => (
+                  <div key={province} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-medium mr-2">
+                        {index + 1}
+                      </div>
+                      <span className="text-gray-700">{province}</span>
+                    </div>
+                    <span className="px-2 py-1 bg-orange-50 text-orange-600 text-xs rounded-full">
+                      {data.count} เอกสาร
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-            
-            <div className="bg-white p-5 rounded-xl shadow-md border border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4">คำแนะนำการใช้งาน</h2>
-              <ul className="space-y-2 text-slate-600 text-sm">
-                <li className="flex items-start">
-                  <span className="text-orange-500 mr-2">•</span>
-                  <span>สามารถซูมเข้า-ออกเพื่อดูตำแหน่งเอกสารในแต่ละพื้นที่</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-orange-500 mr-2">•</span>
-                  <span>คลิกที่หมุดเพื่อดูรายละเอียดเอกสาร</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-orange-500 mr-2">•</span>
-                  <span>ใช้ตัวกรองด้านบนขวาเพื่อเลือกดูเฉพาะประเภทที่ต้องการ</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-orange-500 mr-2">•</span>
-                  <span>หมุดสีส้มแสดงเอกสารล่าสุดที่เพิ่มเข้ามาในระบบ</span>
-                </li>
-              </ul>
+          </div>
+        </div>
+      </div>
+      
+      {/* คำแนะนำการใช้งาน */}
+      <div className="bg-gray-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">คำแนะนำการใช้งาน</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">เรียนรู้วิธีการใช้งานแผนที่เอกสารให้เกิดประโยชน์สูงสุด</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+                <FiMap className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">สำรวจพื้นที่</h3>
+              <p className="text-gray-600">ซูมเข้า-ออกเพื่อดูตำแหน่งเอกสารในแต่ละพื้นที่ทั่วประเทศ</p>
             </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">ดูรายละเอียด</h3>
+              <p className="text-gray-600">คลิกที่หมุดบนแผนที่เพื่อดูรายละเอียดเอกสารและเปิดดูไฟล์</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+                <FiFilter className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">กรองเอกสาร</h3>
+              <p className="text-gray-600">ใช้ตัวกรองด้านบนขวาของแผนที่เพื่อเลือกดูเฉพาะประเภทที่ต้องการ</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition border border-gray-100">
+              <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+                <FiInfo className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">ข้อมูลล่าสุด</h3>
+              <p className="text-gray-600">หมุดที่มีเอฟเฟกต์เคลื่อนไหวแสดงเอกสารล่าสุดที่เพิ่งอัปเดต</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Call to Action */}
+      <div className="bg-gradient-to-r from-orange-600 to-orange-400 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">พร้อมเริ่มใช้งาน?</h2>
+          <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
+            เริ่มใช้งานระบบแผนที่เอกสารวันนี้ เพื่อการจัดการข้อมูลอย่างมีประสิทธิภาพ
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link 
+              href="/dashboard/map" 
+              className="px-8 py-4 bg-white text-orange-600 rounded-lg font-medium text-lg hover:bg-gray-100 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              ไปที่แดชบอร์ด
+            </Link>
+            <Link 
+              href="/dashboard/documents" 
+              className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-medium text-lg hover:bg-white/10 transition"
+            >
+              ดูเอกสารทั้งหมด
+            </Link>
           </div>
         </div>
       </div>

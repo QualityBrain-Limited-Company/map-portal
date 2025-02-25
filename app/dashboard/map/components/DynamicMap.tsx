@@ -13,7 +13,7 @@ import Legend from './Legend'
 import CategoryFilter from './CategoryFilter'
 import StatsPanel from './StatsPanel'
 import LocationMarker from './LocationMarker'
-import { THAILAND_BOUNDS } from '@/app/constants/categoryColors'
+import { THAILAND_BOUNDS } from '@/app/utils/colorGenerator'
 import 'leaflet/dist/leaflet.css'
 
 // CSS สำหรับ custom marker

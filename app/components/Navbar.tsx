@@ -59,18 +59,18 @@ const Navbar = () => {
   const navItems: NavItem[] = [
     { 
       href: '/', 
-      label: 'หน้าหลัก' 
+      label: 'Home' 
     },
     ...(session?.user?.role === 'ADMIN' ? [{
       href: '/dashboard',
-      label: 'จัดการระบบ',
+      label: 'Dashboard',
       requireAuth: true,
       requireAdmin: true,
       subItems: [
-        { href: '/dashboard/users', label: 'จัดการผู้ใช้' },
-        { href: '/dashboard/documents', label: 'จัดการเอกสาร' },
-        { href: '/dashboard/categories', label: 'จัดการประเภทเอกสาร' },
-        { href: '/dashboard/news', label: 'จัดการข่าว' },
+
+        { href: '/dashboard/documents', label: 'Documents' },
+
+
       ]
     }] : [])
   ];

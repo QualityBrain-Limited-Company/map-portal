@@ -27,7 +27,9 @@ export default async function RootLayout({
     <html lang="th">
       <body className={`${inter.variable}`}>
         <SessionProvider session={session}>
-          <Navbar />
+          <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+            <Navbar />
+          </header>
           <main className="pt-16">
             {children}
           </main>
