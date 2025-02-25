@@ -1,3 +1,4 @@
+// app/api/auth/signup/[id]/route.ts
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, unlink } from 'fs/promises';
@@ -5,29 +6,23 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 
-type Context = {
-  params: {
-    id: string;
-  };
-};
+export async function GET(req: NextRequest, { params }: { params: Record<string, string> }) {
+  const id = params.id; // ดึงค่า id จาก params
 
-export async function GET(
-  request: NextRequest,
-  context: Context
-) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: Number(context.params.id) },
-    });
-    return NextResponse.json(user);
-  } catch (error) {
-    return NextResponse.json({ error }, { status: 500 });
+  if (!id) {
+    return new Response(JSON.stringify({ error: "ID is required" }), { status: 400 });
   }
+
+  return new Response(JSON.stringify({ message: `User ID: ${id}` }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
+
 
 export async function PUT(
   request: NextRequest,
-  context: Context
+  { params }: { params: { id: string } }
 ) {
   const formData = await request.formData();
   const firstName = formData.get('firstName') as string;
@@ -38,7 +33,7 @@ export async function PUT(
 
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { id: Number(context.params.id) },
+      where: { id: Number(params.id) },
     });
 
     if (image) {
@@ -60,7 +55,7 @@ export async function PUT(
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: Number(context.params.id) },
+      where: { id: Number(params.id) },
       data: {
         firstName,
         lastName,

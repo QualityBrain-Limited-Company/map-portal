@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { getDocument } from '@/app/lib/actions/documents/get'
 import { updateDocument } from '@/app/lib/actions/documents/update'
 import { getCategories } from '@/app/lib/actions/categories/get'
-import DocumentForm from '@/app/gismap/components/DocumentForm'
+import DocumentForm from '@/app/dashboard/map/components/DocumentForm'
 import { DocumentWithCategory, LocationData } from '@/app/types/document'
 
 interface PageProps {
