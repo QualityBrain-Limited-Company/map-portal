@@ -3,7 +3,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from 'next/navigation';
 import { HiMenuAlt3 } from "react-icons/hi";
@@ -178,13 +177,11 @@ const Navbar = () => {
                 >
                   <div className="w-10 h-10 rounded-full ring-2 ring-gray-200 overflow-hidden">
                     {session.user?.image ? (
-                      <Image
-                        src={session.user.image}
-                        alt="Profile"
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover w-full h-full"
-                      />
+                      <img
+                      src={session.user.image}
+                      alt="Profile"
+                      className="rounded-full object-cover w-full h-full"
+                    />
                     ) : (
                       <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-600">
