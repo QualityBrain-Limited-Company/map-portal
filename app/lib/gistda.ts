@@ -10,34 +10,23 @@ interface GistdaAddress {
 
 export async function getLocationAddress(lat: number, lng: number): Promise<GistdaAddress> {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GISTDA_API_KEY
-    // แก้ไข URL และ parameters ให้ถูกต้องตามเอกสาร API
-    const url = 'https://api.sphere.gistda.or.th/services/geo/address'
+    // เปลี่ยนเป็นเรียกผ่าน API Route
+    const url = `/api/gistda/reverse-geocode`
     
-    // Add debug logs
-    console.log('Making request with params:', {
-      lat,
-      lng,
-      apiKey: apiKey?.substring(0, 8) + '...' // แสดงบางส่วนของ API key เพื่อความปลอดภัย
-    })
+    console.log('Fetching location data for:', { lat, lng })
 
     const response = await axios.get(url, {
       params: {
-        lat: lat.toFixed(6),    // ส่งค่าพิกัดแบบมีทศนิยม 6 ตำแหน่ง
-        lon: lng.toFixed(6),    // ใช้ lon แทน lng ตามที่ API ต้องการ
-        local: 't',             // ต้องการภาษาไทย
-        key: apiKey             // API key จาก environment variable
-      },
-      headers: {
-        'Accept': 'application/json'
+        lat: lat.toFixed(6),
+        lng: lng.toFixed(6)
       }
     })
 
-    console.log('GISTDA API Response:', response.data)
+    console.log('API Response:', response.data)
 
     // ตรวจสอบข้อมูลที่ได้รับ
     if (!response.data || !response.data.province) {
-      throw new Error('Invalid response from GISTDA API')
+      throw new Error('Invalid response from API')
     }
 
     return {
@@ -48,7 +37,7 @@ export async function getLocationAddress(lat: number, lng: number): Promise<Gist
     }
 
   } catch (error) {
-    console.error('GISTDA API Error:', error)
+    console.error('Location API Error:', error)
     if (axios.isAxiosError(error)) {
       console.error('Response data:', error.response?.data)
       console.error('Request config:', error.config)
