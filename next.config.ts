@@ -6,7 +6,7 @@ const nextConfig = {
     }
   },
   typescript: {
-    ignoreBuildErrors: true // ตั้งเป็น true ถ้าต้องการข้าม type check ระหว่าง build
+    ignoreBuildErrors: false // ตั้งเป็น true ถ้าต้องการข้าม type check ระหว่าง build
   }
 }
 

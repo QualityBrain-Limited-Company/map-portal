@@ -4,7 +4,7 @@ import { getDocuments } from '@/app/lib/actions/documents/get'
 import MapClientWrapper from './components/MapClientWrapper'
 import Link from 'next/link'
 import Image from 'next/image'
-import { generateColorById } from '@/app/utils/colorGenerator'
+import { getCategoryColor } from '@/app/utils/colorGenerator'
 import { FiMap, FiFileText, FiFilter, FiInfo } from 'react-icons/fi'
 
 export default async function HomePage() {
@@ -97,7 +97,7 @@ export default async function HomePage() {
               
               <div className="space-y-4">
                 {categories.map(category => {
-                  const color = generateColorById(category.id).primary;
+                  const color = getCategoryColor(category.id).primary;
                   const count = documents.filter(d => d.categoryId === category.id).length;
                   return (
                     <div key={category.id} className="flex items-center justify-between group">

@@ -15,6 +15,7 @@ import StatsPanel from './StatsPanel'
 import LocationMarker from './LocationMarker'
 import { THAILAND_BOUNDS } from '@/app/utils/colorGenerator'
 import 'leaflet/dist/leaflet.css'
+import CircleLoader from './CircleLoader'
 
 // CSS สำหรับ custom marker
 const addCustomStyles = () => {
@@ -47,18 +48,42 @@ const addCustomStyles = () => {
 // Component หลัก
 interface DynamicMapViewProps {
  categories: CategoryDoc[];
- simplified?: boolean; // โหมดง่ายสำหรับหน้าแรก
+ documents?: DocumentWithCategory[];
+ selectedCategories?: number[];
+ setSelectedCategories?: (ids: number[]) => void;
+ simplified?: boolean;
 }
 
-export default function DynamicMapView({ categories, simplified = false }: DynamicMapViewProps) {
+export default function DynamicMapView({
+ categories,
+ documents: externalDocuments,
+ selectedCategories: externalSelectedCategories,
+ setSelectedCategories: externalSetSelectedCategories,
+ simplified = false
+}: DynamicMapViewProps) {
  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null)
- const [documents, setDocuments] = useState<DocumentWithCategory[]>([])
- const [selectedCategories, setSelectedCategories] = useState<number[]>([])
- const [isLoading, setIsLoading] = useState(true)
+ const [internalDocuments, setInternalDocuments] = useState<DocumentWithCategory[]>([])
+ const [internalSelectedCategories, setInternalSelectedCategories] = useState<number[]>([])
+ const [isLoading, setIsLoading] = useState(!externalDocuments)
  const [mapStyle] = useState({
    height: '100%',
    width: '100%'
  });
+
+ // ใช้ documents จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+ const documents = externalDocuments || internalDocuments
+ 
+ // ใช้ selectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+ const selectedCategories = externalSelectedCategories || internalSelectedCategories
+ 
+ // ใช้ setSelectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+ const setSelectedCategories = externalSetSelectedCategories || setInternalSelectedCategories
+
+ // ใช้ custom hook เพื่อจัดการข้อมูล
+ const { filteredDocuments, sortedDocuments, processedDocuments } = useProcessedDocuments(
+   documents,
+   selectedCategories
+ );
 
  // เพิ่ม CSS styles
  useEffect(() => {
@@ -66,14 +91,19 @@ export default function DynamicMapView({ categories, simplified = false }: Dynam
    return cleanup;
  }, []);
 
- // โหลดข้อมูลเอกสารเมื่อ component โหลด
+ // โหลดข้อมูลเอกสารเมื่อไม่มี external documents
  useEffect(() => {
+   if (externalDocuments) {
+     setIsLoading(false);
+     return;
+   }
+   
    const loadDocuments = async () => {
      try {
        const docs = await getDocuments()
-       setDocuments(docs)
+       setInternalDocuments(docs)
        // เริ่มต้นแสดงทุกหมวดหมู่
-       setSelectedCategories(categories.map(c => c.id))
+       setInternalSelectedCategories(categories.map(c => c.id))
      } catch (error) {
        console.error('Error loading documents:', error)
        toast.error('ไม่สามารถโหลดข้อมูลเอกสารได้')
@@ -81,41 +111,13 @@ export default function DynamicMapView({ categories, simplified = false }: Dynam
        setIsLoading(false)
      }
    }
+   
    loadDocuments()
- }, [categories])
-
- // กรองเอกสารตามหมวดหมู่ที่เลือก
- const filteredDocuments = useMemo(() => {
-   return documents.filter(doc => 
-     selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
-   )
- }, [documents, selectedCategories])
-
- // เรียงลำดับเอกสารให้ล่าสุดอยู่บนสุด
- const sortedDocuments = useMemo(() => {
-   return [...filteredDocuments].sort((a, b) => 
-     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-   );
- }, [filteredDocuments]);
-
- // เพิ่ม flag ไปยังเอกสารล่าสุด
- const processedDocuments = useMemo(() => {
-   return sortedDocuments.map((doc, index) => ({
-     ...doc,
-     isLatest: index === 0
-   }));
- }, [sortedDocuments]);
+ }, [categories, externalDocuments]);
 
  if (isLoading) {
-   return (
-     <div className="h-full w-full flex items-center justify-center bg-slate-50">
-       <div className="text-center">
-         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto"></div>
-         <p className="mt-4 text-slate-600">กำลังโหลดข้อมูล...</p>
-       </div>
-     </div>
-   );
- }
+  return <CircleLoader message="กำลังโหลดข้อมูล..." />;
+}
 
  return (
    <div className="relative w-full h-full">
@@ -153,23 +155,16 @@ export default function DynamicMapView({ categories, simplified = false }: Dynam
      )}
 
      {/* แสดง CategoryFilter เฉพาะเมื่อไม่ใช่โหมด simplified */}
-     {!simplified && (
+     {/* {!simplified && (
        <CategoryFilter 
          categories={categories}
          selectedCategories={selectedCategories}
          setSelectedCategories={setSelectedCategories}
          documents={documents}
        />
-     )}
+     )} */}
      
-     {/* แสดง StatsPanel เฉพาะเมื่อไม่ใช่โหมด simplified */}
-     {!simplified && (
-       <StatsPanel
-         documents={documents}
-         categories={categories}
-         selectedCategories={selectedCategories}
-       />
-     )}
+
 
      {/* แสดง DocumentForm เฉพาะเมื่อมีการเลือกตำแหน่งและไม่ใช่โหมด simplified */}
      {!simplified && selectedLocation && (
@@ -181,9 +176,16 @@ export default function DynamicMapView({ categories, simplified = false }: Dynam
            onSuccess={async () => {
              try {
                const newDocs = await getDocuments()
-               setDocuments(newDocs)
-               setSelectedLocation(null)
-               toast.success('บันทึกข้อมูลสำเร็จ')
+               if (externalSetSelectedCategories && externalDocuments) {
+                 // ถ้ามีการจัดการจากภายนอก ให้แจ้งเตือนสำเร็จและปิด
+                 setSelectedLocation(null)
+                 toast.success('บันทึกข้อมูลสำเร็จ')
+               } else {
+                 // ถ้าจัดการภายใน ให้อัปเดตข้อมูล
+                 setInternalDocuments(newDocs)
+                 setSelectedLocation(null)
+                 toast.success('บันทึกข้อมูลสำเร็จ')
+               }
              } catch (error) {
                console.error('Error reloading documents:', error)
                toast.error('ไม่สามารถโหลดข้อมูลเอกสารได้')
@@ -194,4 +196,35 @@ export default function DynamicMapView({ categories, simplified = false }: Dynam
      )}
    </div>
  )
+}
+
+// Custom hook สำหรับจัดการข้อมูลเอกสาร
+function useProcessedDocuments(documents: DocumentWithCategory[], selectedCategories: number[]) {
+ // กรองเอกสารตามหมวดหมู่ที่เลือก
+ const filteredDocuments = useMemo(() => {
+   return documents.filter(doc => 
+     selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
+   )
+ }, [documents, selectedCategories])
+
+ // เรียงลำดับเอกสารให้ล่าสุดอยู่บนสุด
+ const sortedDocuments = useMemo(() => {
+   return [...filteredDocuments].sort((a, b) => 
+     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+   );
+ }, [filteredDocuments]);
+
+ // เพิ่ม flag ไปยังเอกสารล่าสุด
+ const processedDocuments = useMemo(() => {
+   return sortedDocuments.map((doc, index) => ({
+     ...doc,
+     isLatest: index === 0
+   }));
+ }, [sortedDocuments]);
+
+ return {
+   filteredDocuments,
+   sortedDocuments,
+   processedDocuments
+ };
 }

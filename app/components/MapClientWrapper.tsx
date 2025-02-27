@@ -3,6 +3,7 @@
 
 import dynamic from 'next/dynamic'
 import { CategoryDoc } from '@prisma/client'
+import { DocumentWithCategory } from '@/app/types/document'
 
 // นำเข้า component แบบ dynamic
 const DynamicMapClient = dynamic(
@@ -22,9 +23,26 @@ const DynamicMapClient = dynamic(
 
 interface MapClientWrapperProps {
   categories: CategoryDoc[];
-  simplified?: boolean; // เพิ่มตัวเลือกสำหรับหน้าแรก
+  documents?: DocumentWithCategory[];
+  selectedCategories?: number[];
+  setSelectedCategories?: (ids: number[]) => void;
+  simplified?: boolean;
 }
 
-export default function MapClientWrapper({ categories, simplified = false }: MapClientWrapperProps) {
-  return <DynamicMapClient categories={categories} simplified={simplified} />
+export default function MapClientWrapper({ 
+  categories, 
+  documents, 
+  selectedCategories, 
+  setSelectedCategories, 
+  simplified = false 
+}: MapClientWrapperProps) {
+  return (
+    <DynamicMapClient 
+      categories={categories}
+      documents={documents}
+      selectedCategories={selectedCategories}
+      setSelectedCategories={setSelectedCategories}
+      simplified={simplified}
+    />
+  )
 }

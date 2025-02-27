@@ -1,4 +1,3 @@
-// app/api/auth/signup/[id]/route.ts
 import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, unlink } from 'fs/promises';
@@ -6,24 +5,21 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest, { params }: { params: Record<string, string> }) {
-  const id = params.id; // ดึงค่า id จาก params
-
-  if (!id) {
-    return new Response(JSON.stringify({ error: "ID is required" }), { status: 400 });
+export async function GET(request: NextRequest) {
+  const id = request.nextUrl.pathname.split('/').pop();
+  
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: Number(id) },
+    });
+    return NextResponse.json(user);
+  } catch (error) {
+    return NextResponse.json({ error }, { status: 500 });
   }
-
-  return new Response(JSON.stringify({ message: `User ID: ${id}` }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 }
 
-
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
+  const id = request.nextUrl.pathname.split('/').pop();
   const formData = await request.formData();
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
@@ -33,7 +29,7 @@ export async function PUT(
 
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
     });
 
     if (image) {
@@ -48,6 +44,7 @@ export async function PUT(
 
       await writeFile(imagePath, bufferData);
 
+      // ลบภาพเก่า
       if (existingUser?.image) {
         const oldImagePath = path.join(process.cwd(), 'public', existingUser.image);
         await unlink(oldImagePath).catch(err => console.error('Failed to delete old image:', err));
@@ -55,7 +52,7 @@ export async function PUT(
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
       data: {
         firstName,
         lastName,

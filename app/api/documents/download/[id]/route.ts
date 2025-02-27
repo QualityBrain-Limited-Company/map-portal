@@ -1,15 +1,13 @@
 // app/api/documents/download/[id]/route.ts
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
 import fs from 'fs'
 import path from 'path'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const id = parseInt(params.id)
+    // ดึง id จาก URL
+    const id = Number(request.nextUrl.pathname.split('/').pop())
     
     // หาข้อมูลเอกสาร
     const document = await prisma.document.findUnique({

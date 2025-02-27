@@ -7,13 +7,12 @@ import DocumentForm from '@/app/dashboard/map/components/DocumentForm'
 import { DocumentWithCategory, LocationData } from '@/app/types/document'
 
 interface PageProps {
-  params: Promise<{ id: string }> | { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function EditDocumentPage({ params }: PageProps) {
   // รอให้ params พร้อมก่อนใช้งาน
-  const resolvedParams = await Promise.resolve(params)
-  const { id } = resolvedParams
+  const { id } = await params
   
   const documentData = await getDocument(id)
   const categories = await getCategories()

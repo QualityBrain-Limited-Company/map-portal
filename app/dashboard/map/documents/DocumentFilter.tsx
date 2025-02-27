@@ -3,8 +3,7 @@
 
 import { useState } from 'react'
 import { CategoryDoc } from '@prisma/client'
-import { getCategoryColor } from '@/app/utils/colorUtils'
-
+import { getCategoryColor } from '@/app/utils/colorGenerator'
 interface DocumentFilterProps {
   categories: CategoryDoc[];
   onFilterChange: (categoryId: number | null) => void;

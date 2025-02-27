@@ -23,6 +23,7 @@ export default function NewDocumentPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">เพิ่มเอกสารใหม่</h1>
       <DocumentForm 
+        categories={[]}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         initialData={null}

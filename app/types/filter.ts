@@ -5,7 +5,3 @@ export interface FilterOptions {
     searchTerm?: string
   }
   
-  export interface SearchResult {
-    documents: MapDocument[]
-    total: number
-  }

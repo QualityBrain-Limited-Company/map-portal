@@ -33,7 +33,7 @@ const COLOR_PALETTE = [
    * @param id ID ของหมวดหมู่
    * @returns ชุดสีสำหรับหมวดหมู่
    */
-  export function generateColorById(id: number): CategoryColorScheme {
+  export function getCategoryColor(id: number): CategoryColorScheme {
     // กำหนดสีจาก COLOR_PALETTE ตาม ID (วนกลับเมื่อ ID มากกว่าจำนวนสีที่มี)
     const colorIndex = (id - 1) % COLOR_PALETTE.length;
     const primary = COLOR_PALETTE[colorIndex];
@@ -76,13 +76,13 @@ const COLOR_PALETTE = [
   // app/utils/colorGenerator.ts
   
   export const THAILAND_BOUNDS = {
-    center: [13.736717, 100.523186], // ค่า latitude, longitude ของประเทศไทย
+    center: [13.736717, 100.523186] as [number, number], 
     zoom: 6,
     minZoom: 5,
     maxZoom: 18,
     bounds: [
-      [6.0, 97.0], // South-West corner
-      [20.0, 106.5], // North-East corner
-    ],
+      [6.0, 97.0] as [number, number], 
+      [20.0, 106.5] as [number, number], 
+    ] as [[number, number], [number, number]], 
   };
   

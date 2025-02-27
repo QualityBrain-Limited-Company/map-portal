@@ -3,7 +3,7 @@
 
 import { CategoryDoc } from '@prisma/client'
 import { DocumentWithCategory } from '@/app/types/document'
-import { generateColorById } from '@/app/utils/colorGenerator'
+import { getCategoryColor } from '@/app/utils/colorGenerator'
 
 interface CategoryFilterProps {
   categories: CategoryDoc[];
@@ -36,7 +36,7 @@ export default function CategoryFilter({
         <option value="">📍 ทุกหมวดหมู่ ({documents.length})</option>
         {categories.map(cat => {
           const docsCount = documents.filter(d => d.categoryId === cat.id).length;
-          const colorScheme = generateColorById(cat.id);
+          const colorScheme = getCategoryColor(cat.id);
           return (
             <option 
               key={cat.id} 

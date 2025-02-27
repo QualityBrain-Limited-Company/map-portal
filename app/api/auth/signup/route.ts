@@ -1,29 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
-import axios from 'axios';
 
 const prisma = new PrismaClient();
-
-const LINE_NOTIFY_TOKEN = 'Q6Xpu58PHvUT3nzkn2WwL9E42in8il7gmmLJZllCBsm';
-
-async function sendLineNotify(message: string) {
-  try {
-    await axios.post('https://notify-api.line.me/api/notify', 
-      `message=${encodeURIComponent(message)}`,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Bearer ${LINE_NOTIFY_TOKEN}`
-        }
-      }
-    );
-  } catch (error) {
-    console.error('Error sending Line notification:', error);
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,9 +51,6 @@ export async function POST(request: NextRequest) {
         image: imagePath || null,
       },
     });
-
-    // Send Line Notify
-    await sendLineNotify(`มีผู้ใช้ใหม่ลงทะเบียน: ${firstName} ${lastName} (${email})`);
 
     // Return success response
     return new NextResponse(JSON.stringify({ message: 'ลงทะเบียนสำเร็จ', userId: newUser.id }), { status: 200 });
