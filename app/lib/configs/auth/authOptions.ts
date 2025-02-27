@@ -103,7 +103,7 @@ const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect() {
-      return 'https://sdnthailand.com/';
+      return 'https://sdnmapportal.sdnthailand.com/dashboard';
     },
   },
 };
