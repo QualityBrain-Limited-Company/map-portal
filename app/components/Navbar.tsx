@@ -38,13 +38,19 @@ interface Session {
 }
 
 const Navbar = () => {
-  const { data: session } = useSession() as { data: Session | null };
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Debug logging - จะแสดงใน console เท่านั้น
+  useEffect(() => {
+    console.log('Navbar session status:', status);
+    console.log('Navbar session data:', session);
+  }, [session, status]);
 
   const handleSignOut = async () => {
     try {
@@ -61,17 +67,13 @@ const Navbar = () => {
       href: '/', 
       label: 'Home' 
     },
-    ...(session?.user?.role === 'ADMIN' ? [{
+    // แสดง Dashboard เฉพาะเมื่อมีการยืนยันว่ามี session และเป็น ADMIN
+    ...(status === 'authenticated' && session?.user?.role === 'ADMIN' ? [{
       href: '/dashboard',
       label: 'Dashboard',
       requireAuth: true,
       requireAdmin: true,
-      subItems: [
-
-        { href: '/dashboard/documents', label: 'Documents' },
-
-
-      ]
+      // ลบ subItems ออกเพื่อลดความซับซ้อน
     }] : [])
   ];
 
@@ -91,7 +93,7 @@ const Navbar = () => {
   };
 
   const shouldShowNavItem = (item: NavItem): boolean => {
-    if (item.requireAuth && !session) return false;
+    if (item.requireAuth && status !== 'authenticated') return false;
     if (item.requireAdmin && session?.user?.role !== 'ADMIN') return false;
     return true;
   };
@@ -99,7 +101,7 @@ const Navbar = () => {
   const renderNavItem = (item: NavItem) => {
     if (!shouldShowNavItem(item)) return null;
 
-    if (item.subItems) {
+    if (item.subItems && item.subItems.length > 0) {
       return (
         <div key={item.href} className="relative">
           <button
@@ -168,7 +170,7 @@ const Navbar = () => {
 
           {/* Auth Section */}
           <div className="flex items-center space-x-4">
-            {session ? (
+            {status === 'authenticated' && session ? (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -186,7 +188,7 @@ const Navbar = () => {
                     ) : (
                       <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-600">
-                          {session.user?.lastName?.[0]}
+                          {session.user?.lastName?.[0] || session.user?.firstName?.[0] || '?'}
                         </span>
                       </div>
                     )}
@@ -195,7 +197,7 @@ const Navbar = () => {
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100 z-50">
                     <Link
                       href="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
@@ -212,6 +214,9 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
+            ) : status === 'loading' ? (
+              // แสดงตัว loading ระหว่างตรวจสอบ session
+              <div className="w-8 h-8 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
             ) : (
               <Link
                 href="/auth/signin"
@@ -238,7 +243,7 @@ const Navbar = () => {
           <div className="px-2 pt-2 pb-3 space-y-1">
             {navItems.filter(shouldShowNavItem).map((item) => (
               <div key={item.href}>
-                {item.subItems ? (
+                {item.subItems && item.subItems.length > 0 ? (
                   <div>
                     <button
                       onClick={() => toggleSubmenu(item.href)}
