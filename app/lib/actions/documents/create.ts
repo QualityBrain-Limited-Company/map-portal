@@ -1,8 +1,8 @@
-// app/lib/actions/documents/create.ts
+// app/lib/actions/documents/create.ts (แก้ไข)
 'use server'
 
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import prisma from '../../db'
 import { uploadFile } from '../../upload'
 
@@ -46,7 +46,7 @@ export async function createDocument(formData: FormData) {
     }
 
     // 5. บันทึกข้อมูล
-    await prisma.document.create({
+    const newDocument = await prisma.document.create({
       data: {
         title,
         description,
@@ -58,12 +58,21 @@ export async function createDocument(formData: FormData) {
         longitude: longitude ? parseFloat(longitude) : 0,
         filePath,
         coverImage: coverImagePath
+      },
+      include: {
+        category: true
       }
     })
 
-    // 6. Revalidate และ redirect
+    // 6. Revalidate ทั้งพาธและแท็ก
     revalidatePath('/dashboard/documents')
-    redirect('/dashboard/documents')
+    revalidateTag('documents-list')
+    revalidateTag('documents')
+    
+    return newDocument
+    
+    // ไม่ต้องมี redirect ที่นี่ เพราะจะจัดการใน client component แทน
+    // redirect('/dashboard/documents')
 
   } catch (error) {
     if (error instanceof Error) {
