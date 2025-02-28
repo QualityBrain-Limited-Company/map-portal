@@ -25,13 +25,17 @@ export default function DocumentsPage() {
   }
 
   useEffect(() => {
+    // โหลดข้อมูลครั้งแรก
     loadDocuments()
+    
+    // ตั้ง interval เพื่อโหลดข้อมูลทุก 5 วินาที
+    const intervalId = setInterval(() => {
+      loadDocuments()
+    }, 5000)
+    
+    // ล้าง interval เมื่อ component unmount
+    return () => clearInterval(intervalId)
   }, [])
-
-  // เพิ่มฟังก์ชันนี้เพื่อให้ DocumentList เรียกใช้เมื่อลบเอกสาร
-  const handleDocumentDeleted = () => {
-    loadDocuments() // โหลดข้อมูลใหม่หลังลบ
-  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -59,20 +63,18 @@ export default function DocumentsPage() {
             <div className="text-gray-500">เอกสารทั้งหมด</div>
             <div className="text-2xl font-semibold">{documents.length}</div>
           </div>
-          {/* Add more stats cards if needed */}
         </div>
       </div>
 
       {/* Document List Section */}
       <div className="bg-white rounded-lg shadow-sm">
-        {loading ? (
+        {loading && documents.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
           </div>
         ) : documents.length > 0 ? (
           <DocumentList 
             documents={documents} 
-            onDocumentDeleted={handleDocumentDeleted}
           />
         ) : (
           <div className="p-8 text-center">
