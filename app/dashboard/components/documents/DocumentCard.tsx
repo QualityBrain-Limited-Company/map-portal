@@ -1,4 +1,4 @@
-// app/dashboard/components/documents/DocumentCard.tsx
+// app/dashboard/components/documents/DocumentCard.tsx 
 import Link from 'next/link'
 import { DocumentWithCategory } from '../types/document'
 
@@ -13,12 +13,16 @@ export default function DocumentCard({
  onDelete,
  isDeleting
 }: DocumentCardProps) {
+ // เพิ่ม timestamp ให้กับ URL รูปภาพเพื่อป้องกันการแคช
+ const imageUrl = document.coverImage ? 
+   `${document.coverImage}?t=${new Date().getTime()}` : null;
+
  return (
    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
      <div className="relative h-32">
-       {document.coverImage ? (
+       {imageUrl ? (
          <img
-           src={document.coverImage}
+           src={imageUrl}
            alt={document.title}
            className="object-cover w-full h-full"
          />

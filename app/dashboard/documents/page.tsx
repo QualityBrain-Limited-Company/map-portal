@@ -1,17 +1,37 @@
 // app/dashboard/documents/page.tsx
-import { Metadata } from 'next'
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import { getDocuments } from '@/app/lib/actions/documents/get'
 import DocumentList from '../components/documents/DocumentList'
+import { DocumentWithCategory } from '../components/types/document'
 
-export const metadata: Metadata = {
-  title: 'จัดการเอกสาร | SDN MapPortal',
-  description: 'ระบบจัดการเอกสารในระบบ'
-}
+export default function DocumentsPage() {
+  const [documents, setDocuments] = useState<DocumentWithCategory[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function DocumentsPage() {
-  const documents = await getDocuments()
+  const loadDocuments = async () => {
+    try {
+      setLoading(true)
+      const docs = await getDocuments()
+      setDocuments(docs)
+    } catch (error) {
+      console.error('Error loading documents:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadDocuments()
+  }, [])
+
+  // เพิ่มฟังก์ชันนี้เพื่อให้ DocumentList เรียกใช้เมื่อลบเอกสาร
+  const handleDocumentDeleted = () => {
+    loadDocuments() // โหลดข้อมูลใหม่หลังลบ
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -45,8 +65,15 @@ export default async function DocumentsPage() {
 
       {/* Document List Section */}
       <div className="bg-white rounded-lg shadow-sm">
-        {documents.length > 0 ? (
-          <DocumentList documents={documents} />
+        {loading ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
+          </div>
+        ) : documents.length > 0 ? (
+          <DocumentList 
+            documents={documents} 
+            onDocumentDeleted={handleDocumentDeleted}
+          />
         ) : (
           <div className="p-8 text-center">
             <p className="text-gray-500 mb-4">ยังไม่มีเอกสารในระบบ</p>

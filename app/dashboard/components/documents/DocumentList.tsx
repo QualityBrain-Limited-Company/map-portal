@@ -1,4 +1,4 @@
-// app/dashboard/components/documents/DocumentList.tsx
+// app/dashboard/components/documents/DocumentList.tsx 
 'use client'
 
 import { useState } from 'react'
@@ -9,9 +9,10 @@ import { DocumentWithCategory } from '../types/document'
 
 interface DocumentListProps {
   documents: DocumentWithCategory[]
+  onDocumentDeleted?: () => void // เพิ่ม callback
 }
 
-export default function DocumentList({ documents }: DocumentListProps) {
+export default function DocumentList({ documents, onDocumentDeleted }: DocumentListProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const handleDelete = async (id: number) => {
@@ -22,6 +23,11 @@ export default function DocumentList({ documents }: DocumentListProps) {
       // แปลง id จาก number เป็น string
       await deleteDocument(id.toString())
       toast.success('ลบเอกสารสำเร็จ')
+      
+      // เรียกใช้ callback เมื่อลบสำเร็จ
+      if (onDocumentDeleted) {
+        onDocumentDeleted()
+      }
     } catch (error) {
       toast.error('ไม่สามารถลบเอกสารได้')
     } finally {
@@ -41,7 +47,7 @@ export default function DocumentList({ documents }: DocumentListProps) {
     <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
       {documents.map((document) => (
         <DocumentCard
-          key={document.id}
+          key={`${document.id}-${Date.now()}`} // เพิ่ม timestamp เพื่อบังคับให้ re-render
           document={document}
           onDelete={() => handleDelete(document.id)}
           isDeleting={deletingId === document.id}
