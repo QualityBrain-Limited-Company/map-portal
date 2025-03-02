@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { DocumentWithCategory } from '@/app/types/document'
 
-// Type สำหรับ serialized document
 interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;
@@ -15,19 +14,19 @@ interface DocumentCardProps {
   document: SerializedDocument;
   onDelete: () => void;
   isDeleting: boolean;
+  showImagePreview?: boolean;
 }
 
 export default function DocumentCard({
   document,
   onDelete,
-  isDeleting
+  isDeleting,
+  showImagePreview = true
 }: DocumentCardProps) {
-  // สถานะสำหรับการจัดการรูปภาพ
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
   
-  // เตรียม URL รูปภาพเมื่อข้อมูล document เปลี่ยนแปลง
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true)
@@ -38,6 +37,13 @@ export default function DocumentCard({
       let path = document.coverImage
       if (!path.startsWith('/')) {
         path = `/${path}`
+      }
+      
+      // ถ้า showImagePreview เป็น false ให้ตั้งค่า imageUrl ทันทีโดยไม่ต้องโหลดล่วงหน้า
+      if (!showImagePreview) {
+        setImageUrl(path)
+        setIsLoading(false)
+        return;
       }
       
       // ทดลองโหลดรูปภาพล่วงหน้า
@@ -66,7 +72,7 @@ export default function DocumentCard({
     return () => {
       isMounted = false;
     }
-  }, [document?.coverImage, document?.id])
+  }, [document?.coverImage, document?.id, showImagePreview])
 
   if (!document) {
     return null;
@@ -76,13 +82,17 @@ export default function DocumentCard({
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="relative h-32">
         {isLoading ? (
-          // แสดง Loading state
+          // แสดงภาพตัวอย่างหรือข้อความกำลังโหลด
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <div className="animate-pulse flex space-x-1">
-              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-            </div>
+            {!showImagePreview ? (
+              <span className="text-gray-400">รูปภาพกำลังถูกโหลด...</span>
+            ) : (
+              <div className="animate-pulse flex space-x-1">
+                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+              </div>
+            )}
           </div>
         ) : imageUrl && !imageError ? (
           // แสดงรูปภาพเมื่อโหลดสำเร็จ

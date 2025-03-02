@@ -6,7 +6,7 @@ import { toast } from "react-hot-toast";
 import DocumentCard from "./DocumentCard";
 import { DocumentWithCategory } from "@/app/types/document";
 
-// สร้าง interface ที่สอดคล้องกับข้อมูลที่ส่งมาจาก serializedDocuments
+// สร้าง interface สำหรับ document ที่ผ่านการแปลงเป็น serialized แล้ว
 interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;
@@ -15,11 +15,13 @@ interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'u
 interface DocumentListProps {
   documents: SerializedDocument[];
   deleteAction: (id: string) => Promise<{ success: boolean; error?: string }>;
+  showImagePreview?: boolean;
 }
 
 export default function DocumentList({ 
   documents, 
-  deleteAction 
+  deleteAction,
+  showImagePreview = true
 }: DocumentListProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -58,6 +60,7 @@ export default function DocumentList({
           document={document}
           onDelete={() => handleDelete(document.id)}
           isDeleting={deletingId === document.id}
+          showImagePreview={showImagePreview}
         />
       ))}
     </div>
