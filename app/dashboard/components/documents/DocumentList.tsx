@@ -1,67 +1,65 @@
 // app/dashboard/components/documents/DocumentList.tsx
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { toast } from 'react-hot-toast'
-import { deleteDocument } from '@/app/lib/actions/documents/delete'
-import DocumentCard from './DocumentCard'
-import { DocumentWithCategory } from '../types/document'
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import DocumentCard from "./DocumentCard";
+import { DocumentWithCategory } from "@/app/types/document";
 
-interface DocumentListProps {
-  documents: DocumentWithCategory[]
-  onDocumentDeleted?: () => void
+// สร้าง interface ที่สอดคล้องกับข้อมูลที่ส่งมาจาก serializedDocuments
+interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'updatedAt'> {
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function DocumentList({ documents, onDocumentDeleted }: DocumentListProps) {
-  const [deletingId, setDeletingId] = useState<number | null>(null)
-  // เพิ่ม state เพื่อเก็บ documents ที่มีการเพิ่ม timestamp
-  const [processedDocs, setProcessedDocs] = useState<DocumentWithCategory[]>([])
-  
-  // อัพเดต processedDocs เมื่อ documents เปลี่ยนแปลง
-  useEffect(() => {
-    setProcessedDocs(documents)
-  }, [documents])
+interface DocumentListProps {
+  documents: SerializedDocument[];
+  deleteAction: (id: string) => Promise<{ success: boolean; error?: string }>;
+}
+
+export default function DocumentList({ 
+  documents, 
+  deleteAction 
+}: DocumentListProps) {
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('ยืนยันการลบเอกสาร?')) return
-    
-    setDeletingId(id)
+    if (!confirm("ยืนยันการลบเอกสาร?")) return;
+
+    setDeletingId(id);
     try {
-      await deleteDocument(id.toString())
-      toast.success('ลบเอกสารสำเร็จ')
-      
-      if (onDocumentDeleted) {
-        onDocumentDeleted()
+      const result = await deleteAction(id.toString());
+      if (result.success) {
+        toast.success("ลบเอกสารสำเร็จ");
+      } else {
+        toast.error(result.error || "ไม่สามารถลบเอกสารได้");
       }
     } catch (error) {
-      toast.error('ไม่สามารถลบเอกสารได้')
+      console.error("Delete error:", error);
+      toast.error("เกิดข้อผิดพลาดในการลบเอกสาร");
     } finally {
-      setDeletingId(null) 
+      setDeletingId(null);
     }
-  }
+  };
 
-  if (processedDocs.length === 0) {
+  if (!documents || documents.length === 0) {
     return (
       <div className="bg-gray-50 rounded-lg p-8 text-center">
         <p className="text-gray-500">ยังไม่มีเอกสารในระบบ</p>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-      {processedDocs.map((document) => (
+    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+      {documents.map((document) => (
         <DocumentCard
           key={`doc-${document.id}`}
-          document={{
-            ...document,
-            // เพิ่ม timestamp ใน key เพื่อบังคับให้ React สร้าง component ใหม่
-            id: document.id
-          }}
+          document={document}
           onDelete={() => handleDelete(document.id)}
           isDeleting={deletingId === document.id}
         />
       ))}
     </div>
-  )
+  );
 }

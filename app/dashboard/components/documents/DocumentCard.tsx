@@ -3,12 +3,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { DocumentWithCategory } from '../types/document'
+import { DocumentWithCategory } from '@/app/types/document'
+
+// Type สำหรับ serialized document
+interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'updatedAt'> {
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface DocumentCardProps {
-  document: DocumentWithCategory
-  onDelete: () => void
-  isDeleting: boolean
+  document: SerializedDocument;
+  onDelete: () => void;
+  isDeleting: boolean;
 }
 
 export default function DocumentCard({
@@ -23,10 +29,11 @@ export default function DocumentCard({
   
   // เตรียม URL รูปภาพเมื่อข้อมูล document เปลี่ยนแปลง
   useEffect(() => {
+    let isMounted = true;
     setIsLoading(true)
     setImageError(false)
     
-    if (document.coverImage) {
+    if (document?.coverImage) {
       // ตรวจสอบและปรับปรุง path
       let path = document.coverImage
       if (!path.startsWith('/')) {
@@ -38,20 +45,32 @@ export default function DocumentCard({
       img.src = `${path}?t=${Date.now()}`
       
       img.onload = () => {
-        setImageUrl(img.src)
-        setIsLoading(false)
+        if (isMounted) {
+          setImageUrl(img.src)
+          setIsLoading(false)
+        }
       }
       
       img.onerror = () => {
-        console.error(`ไม่สามารถโหลดรูปภาพได้: ${path}`)
-        setImageError(true)
-        setIsLoading(false)
+        if (isMounted) {
+          console.error(`ไม่สามารถโหลดรูปภาพได้: ${path}`)
+          setImageError(true)
+          setIsLoading(false)
+        }
       }
     } else {
       setImageUrl(null)
       setIsLoading(false)
     }
-  }, [document.coverImage, document.id])
+
+    return () => {
+      isMounted = false;
+    }
+  }, [document?.coverImage, document?.id])
+
+  if (!document) {
+    return null;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -69,7 +88,7 @@ export default function DocumentCard({
           // แสดงรูปภาพเมื่อโหลดสำเร็จ
           <img
             src={imageUrl}
-            alt={document.title}
+            alt={document.title || "เอกสาร"}
             className="object-cover w-full h-full"
           />
         ) : (
@@ -82,24 +101,26 @@ export default function DocumentCard({
 
       <div className="p-3">
         <div className="flex items-start justify-between">
-          <div>
+          <div className="flex-1 min-w-0">
             <Link 
               href={`/dashboard/documents/${document.id}`}
-              className="text-sm font-medium hover:text-orange-600"
+              className="text-sm font-medium hover:text-orange-600 truncate block"
             >
-              {document.title}
+              {document.title || "ไม่มีชื่อ"}
             </Link>
             <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-              {document.description}
+              {document.description || "ไม่มีคำอธิบาย"}
             </p>
           </div>
-          <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full">
-            {document.category.name}
-          </span>
+          {document.category && (
+            <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full ml-1 flex-shrink-0">
+              {document.category.name}
+            </span>
+          )}
         </div>
 
         <div className="mt-2 text-xs text-gray-500">
-          <p>{document.province}</p>
+          <p>{document.province || "-"}</p>
           <p>
             {new Date(document.createdAt).toLocaleDateString('th-TH', {
               year: 'numeric',
