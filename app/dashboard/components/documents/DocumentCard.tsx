@@ -1,7 +1,7 @@
 // app/dashboard/components/documents/DocumentCard.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { DocumentWithCategory } from '@/app/types/document'
 
@@ -23,88 +23,56 @@ export default function DocumentCard({
   isDeleting,
   showImagePreview = true
 }: DocumentCardProps) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
   
-  useEffect(() => {
-    let isMounted = true;
-    setIsLoading(true)
-    setImageError(false)
-    
-    if (document?.coverImage) {
-      // ตรวจสอบและปรับปรุง path
-      let path = document.coverImage
-      if (!path.startsWith('/')) {
-        path = `/${path}`
-      }
-      
-      // ถ้า showImagePreview เป็น false ให้ตั้งค่า imageUrl ทันทีโดยไม่ต้องโหลดล่วงหน้า
-      if (!showImagePreview) {
-        setImageUrl(path)
-        setIsLoading(false)
-        return;
-      }
-      
-      // ทดลองโหลดรูปภาพล่วงหน้า
-      const img = new Image()
-      img.src = `${path}?t=${Date.now()}`
-      
-      img.onload = () => {
-        if (isMounted) {
-          setImageUrl(img.src)
-          setIsLoading(false)
-        }
-      }
-      
-      img.onerror = () => {
-        if (isMounted) {
-          console.error(`ไม่สามารถโหลดรูปภาพได้: ${path}`)
-          setImageError(true)
-          setIsLoading(false)
-        }
-      }
-    } else {
-      setImageUrl(null)
-      setIsLoading(false)
-    }
-
-    return () => {
-      isMounted = false;
-    }
-  }, [document?.coverImage, document?.id, showImagePreview])
-
   if (!document) {
     return null;
+  }
+
+  // จัดการกับ path ของรูปภาพ
+  let imageUrl = null
+  if (document?.coverImage) {
+    let path = document.coverImage
+    if (!path.startsWith('/')) {
+      path = `/${path}`
+    }
+    imageUrl = path
   }
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="relative h-32">
-        {isLoading ? (
-          // แสดงภาพตัวอย่างหรือข้อความกำลังโหลด
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            {!showImagePreview ? (
-              <span className="text-gray-400">รูปภาพกำลังถูกโหลด...</span>
-            ) : (
-              <div className="animate-pulse flex space-x-1">
-                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-                <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-              </div>
-            )}
-          </div>
-        ) : imageUrl && !imageError ? (
-          // แสดงรูปภาพเมื่อโหลดสำเร็จ
-          <img
-            src={imageUrl}
-            alt={document.title || "เอกสาร"}
-            className="object-cover w-full h-full"
-          />
-        ) : (
-          // แสดงข้อความเมื่อไม่มีรูปภาพหรือโหลดไม่สำเร็จ
+        {!imageUrl ? (
+          // แสดงข้อความเมื่อไม่มีรูปภาพ
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
             <span className="text-gray-400">ไม่มีรูปปก</span>
+          </div>
+        ) : imageError ? (
+          // แสดงข้อความเมื่อโหลดรูปภาพไม่สำเร็จ
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <span className="text-gray-400">ไม่สามารถโหลดรูปภาพได้</span>
+          </div>
+        ) : (
+          // แสดงรูปภาพพร้อม loading indicator
+          <div className="w-full h-full relative">
+            {!isImageLoaded && showImagePreview && (
+              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
+                <div className="animate-pulse flex space-x-1">
+                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+            )}
+            <img
+              src={imageUrl}
+              alt={document.title || "เอกสาร"}
+              className="object-cover w-full h-full"
+              onLoad={() => setIsImageLoaded(true)}
+              onError={() => setImageError(true)}
+              style={{ visibility: showImagePreview && !isImageLoaded ? "hidden" : "visible" }}
+            />
           </div>
         )}
       </div>

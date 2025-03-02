@@ -12,6 +12,7 @@ const nextConfig = {
   },
 
   images: {
+    unoptimized: true, // เพิ่มตัวเลือกนี้เพื่อปิดการ optimize ภาพ
     domains: ['sdnmapportal.sdnthailand.com'],
     remotePatterns: [
       {
@@ -21,7 +22,10 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-  }
+  },
+  
+  // เพิ่ม revalidate เพื่อให้ระบบอัพเดทข้อมูลอัตโนมัติ
+  staticPageGenerationTimeout: 180,
 }
 
 module.exports = nextConfig
