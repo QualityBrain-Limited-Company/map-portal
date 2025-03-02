@@ -13,8 +13,7 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
-  TagIcon,
-  ComputerDesktopIcon
+  TagIcon
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
@@ -32,11 +31,6 @@ const menuItems = [
     name: 'จัดการเอกสาร',
     href: '/dashboard/documents',
     icon: DocumentTextIcon
-  },
-  {
-    name: 'เอกสาร (Client)',
-    href: '/dashboard/documents/client-page',
-    icon: ComputerDesktopIcon
   },
   {
     name: 'ประเภทเอกสาร',

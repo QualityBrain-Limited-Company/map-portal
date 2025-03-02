@@ -17,9 +17,6 @@ interface DocumentFormProps {
   action?: (formData: FormData) => Promise<void>;
   onSubmit?: (formData: FormData) => Promise<void>;
   isSubmitting?: boolean;
-  // เพิ่ม option สำหรับเลือกใช้ API endpoint แทน server action
-  useApiEndpoint?: boolean;
-  apiUrl?: string;
 }
 
 export default function DocumentForm({ 
@@ -30,10 +27,7 @@ export default function DocumentForm({
   onSuccess,
   action,
   onSubmit,
-  isSubmitting: externalIsSubmitting,
-  // กำหนดค่าเริ่มต้นสำหรับ parameters ใหม่
-  useApiEndpoint = true,
-  apiUrl = '/api/documents/card'
+  isSubmitting: externalIsSubmitting
 }: DocumentFormProps) {
   const [internalIsSubmitting, setInternalIsSubmitting] = useState(false)
   const isSubmitting = externalIsSubmitting !== undefined ? externalIsSubmitting : internalIsSubmitting;
@@ -74,42 +68,28 @@ export default function DocumentForm({
     try {
       const formData = new FormData(e.currentTarget)
       
-      // เพิ่มข้อมูลตำแหน่งหากมี
+      // ถ้าเป็นโหมดสร้างใหม่
       if (location && !initialData) {
         formData.append('latitude', location.lat.toString())
         formData.append('longitude', location.lng.toString())
         formData.append('province', location.province)
         formData.append('amphoe', location.amphoe)
         formData.append('district', location.district)
-      }
 
-      // เลือกวิธีการส่งข้อมูล
-      if (useApiEndpoint) {
-        // ใช้ API endpoint
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        if (onSubmit) {
+          await onSubmit(formData)
+        } else {
+          await createDocument(formData)
         }
         
         toast.success('บันทึกข้อมูลสำเร็จ')
-      } else {
-        // ใช้ server action หรือ function ที่ส่งมา
-        if (onSubmit) {
-          await onSubmit(formData)
-        } else if (action) {
-          await action(formData)
-        } else if (location && !initialData) {
-          await createDocument(formData)
-          toast.success('บันทึกข้อมูลสำเร็จ')
-        }
+        if (onSuccess) await onSuccess()
+      } 
+      // ถ้าเป็นโหมด edit
+      else if (action) {
+        await action(formData)
       }
       
-      if (onSuccess) await onSuccess()
       if (onClose) onClose()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'
@@ -121,7 +101,6 @@ export default function DocumentForm({
 
   return (
     <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg border border-gray-100">
-      {/* ส่วนที่เหลือของคอมโพเนนต์ไม่มีการเปลี่ยนแปลง */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">
           {initialData ? 'แก้ไขข้อมูลเอกสาร' : 'เพิ่มข้อมูลเอกสาร'}
