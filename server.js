@@ -14,11 +14,10 @@ app.prepare().then(() => {
     
     // ตั้งค่าเสิร์ฟไฟล์ static จากโฟลเดอร์ public/img
     server.use('/img', express.static(path.join(__dirname, 'public/img')));
-
-    // เพิ่มการตั้งค่าสำหรับโฟลเดอร์ procurement
-    server.use('/procurement/cover', express.static(path.join(__dirname, 'public/procurement/cover')));
-    server.use('/procurement/pdf', express.static(path.join(__dirname, 'public/procurement/pdf')));
-    server.use('/procurement/pdf-announced', express.static(path.join(__dirname, 'public/procurement/pdf-announced')));
+    
+    // เพิ่มการตั้งค่าสำหรับโฟลเดอร์ covers
+    server.use('/covers', express.static(path.join(__dirname, 'public/covers')));
+    server.use('/documents', express.static(path.join(__dirname, 'public/documents')));
 
     server.all('*', (req, res) => {
         return handle(req, res);
