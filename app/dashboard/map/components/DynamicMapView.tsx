@@ -123,16 +123,13 @@ export default function DynamicMapView({
    <div className="relative w-full h-full">
      {typeof window !== 'undefined' && (
       <MapContainer
-  center={THAILAND_BOUNDS.center}
-  zoom={THAILAND_BOUNDS.zoom}
-  style={mapStyle}
-  minZoom={3} // ปรับให้สามารถซูมออกได้ไกลขึ้น
-  maxZoom={THAILAND_BOUNDS.maxZoom}
-  // ลบบรรทัดเหล่านี้ออก
-  // maxBounds={THAILAND_BOUNDS.bounds}
-  // maxBoundsViscosity={1.0}
-  zoomControl={false}
->
+        center={THAILAND_BOUNDS.center}
+        zoom={THAILAND_BOUNDS.zoom}
+        style={mapStyle}
+        minZoom={3} 
+        maxZoom={THAILAND_BOUNDS.maxZoom}
+        zoomControl={false}
+      >
          
          <TileLayer
            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

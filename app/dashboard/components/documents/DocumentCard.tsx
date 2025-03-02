@@ -1,10 +1,9 @@
-// app/dashboard/components/documents/DocumentCard.tsx 
+// app/dashboard/components/documents/DocumentCard.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { DocumentWithCategory } from '@/app/types/document'
+import { DocumentWithCategory } from '../types/document'
 
 interface DocumentCardProps {
   document: DocumentWithCategory
@@ -17,40 +16,47 @@ export default function DocumentCard({
   onDelete,
   isDeleting
 }: DocumentCardProps) {
-  // ใช้ useState เก็บ path ของรูปภาพ
-  const [imagePath, setImagePath] = useState<string | null>(null)
+  // State สำหรับเก็บ URL ของรูปภาพ
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   
-  // ใช้ useEffect ตรวจสอบและอัพเดท path เมื่อข้อมูล document เปลี่ยนแปลง
+  // Effect สำหรับอัพเดท URL เมื่อ document เปลี่ยนแปลง
   useEffect(() => {
     if (document.coverImage) {
+      // ตรวจสอบและแก้ไข path ให้ถูกต้อง
       let path = document.coverImage
-      // ตรวจสอบและปรับปรุง path
       if (!path.startsWith('/')) {
         path = `/${path}`
       }
-      // เพิ่ม timestamp เพื่อป้องกันการ cache เมื่อมีการอัพเดทรูปภาพ
-      // (ใช้เฉพาะกับรูปที่เพิ่งอัพเดทเท่านั้น)
-      setImagePath(`${path}?v=${Date.now()}`)
+      
+      // เพิ่ม timestamp เพื่อป้องกันการแคช
+      setImageUrl(`${path}?t=${Date.now()}`)
     } else {
-      setImagePath(null)
+      setImageUrl(null)
     }
-  }, [document.coverImage])
+  }, [document.coverImage, document.id]) // เพิ่ม document.id เพื่อให้ effect ทำงานเมื่อเปลี่ยนเอกสาร
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="relative h-32">
-        {imagePath ? (
-          <Image
-            src={imagePath}
+        {imageUrl ? (
+          <img
+            src={imageUrl}
             alt={document.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover"
-            unoptimized={true}
-            // เพิ่มการจัดการเมื่อรูปโหลดไม่สำเร็จ
-            onError={() => {
-              console.error(`ไม่สามารถโหลดรูปภาพได้: ${imagePath}`)
-              // อาจเปลี่ยนเป็นรูปภาพสำรองหรือแสดงข้อความว่าโหลดไม่สำเร็จ
+            className="object-cover w-full h-full"
+            onError={(e) => {
+              console.error(`ไม่สามารถโหลดรูปภาพได้: ${imageUrl}`)
+              // เมื่อโหลดรูปไม่สำเร็จ จะแสดงข้อความ "ไม่มีรูปปก" แทน
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.parentElement?.classList.add('bg-gray-100')
+              e.currentTarget.parentElement?.classList.add('flex')
+              e.currentTarget.parentElement?.classList.add('items-center')
+              e.currentTarget.parentElement?.classList.add('justify-center')
+              
+              // สร้าง element แสดงข้อความ
+              const placeholder = document.createElement('span')
+              placeholder.className = 'text-gray-400'
+              placeholder.textContent = 'ไม่มีรูปปก'
+              e.currentTarget.parentElement?.appendChild(placeholder)
             }}
           />
         ) : (
@@ -69,7 +75,7 @@ export default function DocumentCard({
             >
               {document.title}
             </Link>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
               {document.description}
             </p>
           </div>
@@ -100,7 +106,6 @@ export default function DocumentCard({
             onClick={onDelete}
             disabled={isDeleting}
             className="px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
-            aria-busy={isDeleting}
           >
             {isDeleting ? 'กำลังลบ...' : 'ลบ'}
           </button>
