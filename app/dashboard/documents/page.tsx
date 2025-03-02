@@ -5,6 +5,7 @@ import { DocumentWithCategory } from "@/app/types/document";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
+import { deleteFile } from "@/app/lib/upload";
 
 export default async function DocumentsPage() {
   // ดึงข้อมูลจาก database ในระดับ server component
@@ -40,13 +41,27 @@ export default async function DocumentsPage() {
         select: { filePath: true, coverImage: true }
       });
 
+      if (!document) {
+        return { success: false, error: "ไม่พบเอกสารที่ต้องการลบ" };
+      }
+
       // ลบเอกสารจากฐานข้อมูล
       await prisma.document.delete({
         where: { id: parseInt(id) },
       });
 
-      // TODO: ลบไฟล์เอกสารและรูปภาพที่เกี่ยวข้อง (ถ้ามี)
-      // อาจใช้ฟังก์ชันลบไฟล์ที่มีอยู่ในโปรเจค เช่น deleteFile(document.filePath)
+      // ลบไฟล์เอกสารและรูปภาพที่เกี่ยวข้อง
+      try {
+        if (document.filePath) {
+          await deleteFile(document.filePath);
+        }
+        if (document.coverImage) {
+          await deleteFile(document.coverImage);
+        }
+      } catch (fileError) {
+        console.error('Error deleting files:', fileError);
+        // ไม่ throw error ในกรณีนี้ เพราะข้อมูลในฐานข้อมูลถูกลบไปแล้ว
+      }
 
       // revalidate เพื่อให้หน้าเว็บแสดงข้อมูลล่าสุด
       revalidatePath("/dashboard/documents");
@@ -104,7 +119,6 @@ export default async function DocumentsPage() {
           <DocumentList 
             documents={serializedDocuments} 
             deleteAction={deleteDocument}
-            showImagePreview={false} // ตั้งค่าเป็น false เพื่อแสดงข้อความ "รูปภาพกำลังถูกโหลด..." แทน loading spinner
           />
         ) : (
           <div className="p-8 text-center">

@@ -15,13 +15,11 @@ interface SerializedDocument extends Omit<DocumentWithCategory, 'createdAt' | 'u
 interface DocumentListProps {
   documents: SerializedDocument[];
   deleteAction: (id: string) => Promise<{ success: boolean; error?: string }>;
-  showImagePreview?: boolean;
 }
 
 export default function DocumentList({ 
   documents, 
-  deleteAction,
-  showImagePreview = true
+  deleteAction 
 }: DocumentListProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -60,7 +58,6 @@ export default function DocumentList({
           document={document}
           onDelete={() => handleDelete(document.id)}
           isDeleting={deletingId === document.id}
-          showImagePreview={showImagePreview}
         />
       ))}
     </div>

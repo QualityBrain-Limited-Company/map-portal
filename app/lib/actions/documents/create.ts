@@ -3,8 +3,10 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import prisma from '../../db'
-import { uploadFile } from '../../upload'
+import prisma from '@/app/lib/db'
+import { uploadFile } from '@/app/lib/upload'
+import { mkdir } from 'fs/promises'
+import path from 'path'
 
 export async function createDocument(formData: FormData) {
   try {
@@ -17,6 +19,7 @@ export async function createDocument(formData: FormData) {
     const province = formData.get('province')?.toString()
     const latitude = formData.get('latitude')?.toString()
     const longitude = formData.get('longitude')?.toString()
+    const isPublished = formData.get('isPublished') === 'on' || formData.get('isPublished') === 'true'
 
     // 2. ตรวจสอบข้อมูลที่จำเป็น
     if (!title || !description || !categoryId || !district || !amphoe || !province) {
@@ -31,13 +34,24 @@ export async function createDocument(formData: FormData) {
       throw new Error('กรุณาเลือกไฟล์เอกสาร')
     }
 
-    // 4. อัพโหลดไฟล์
+    // 4. ตรวจสอบและสร้างโฟลเดอร์ถ้ายังไม่มี
+    const documentsDir = path.join(process.cwd(), 'public', 'documents')
+    const coversDir = path.join(process.cwd(), 'public', 'covers')
+    
+    try {
+      await mkdir(documentsDir, { recursive: true })
+      await mkdir(coversDir, { recursive: true })
+    } catch (error) {
+      console.error('Error creating directories:', error)
+    }
+
+    // 5. อัพโหลดไฟล์
     let filePath: string
     let coverImagePath: string | null = null
 
     try {
       filePath = await uploadFile(documentFile, 'documents')
-      if (coverImage) {
+      if (coverImage && coverImage.size > 0) {
         coverImagePath = await uploadFile(coverImage, 'covers')
       }
     } catch (error) {
@@ -45,8 +59,8 @@ export async function createDocument(formData: FormData) {
       throw new Error('เกิดข้อผิดพลาดในการอัพโหลดไฟล์')
     }
 
-    // 5. บันทึกข้อมูล
-    await prisma.document.create({
+    // 6. บันทึกข้อมูล
+    const newDocument = await prisma.document.create({
       data: {
         title,
         description,
@@ -57,15 +71,24 @@ export async function createDocument(formData: FormData) {
         latitude: latitude ? parseFloat(latitude) : 0,
         longitude: longitude ? parseFloat(longitude) : 0,
         filePath,
-        coverImage: coverImagePath
+        coverImage: coverImagePath,
+        isPublished
       }
     })
 
-    // 6. Revalidate และ redirect
+    console.log('Document created successfully:', newDocument)
+
+    // 7. Revalidate และ redirect
     revalidatePath('/dashboard/documents')
     redirect('/dashboard/documents')
 
   } catch (error) {
+    // Don't log redirects as errors
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+      throw error; // Re-throw so Next.js can handle the redirect
+    }
+    
+    console.error('Create document error:', error)
     if (error instanceof Error) {
       throw error
     }
