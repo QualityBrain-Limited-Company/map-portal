@@ -47,16 +47,18 @@ export default function DocumentCard({
               console.error(`ไม่สามารถโหลดรูปภาพได้: ${imageUrl}`)
               // เมื่อโหลดรูปไม่สำเร็จ จะแสดงข้อความ "ไม่มีรูปปก" แทน
               e.currentTarget.style.display = 'none'
-              e.currentTarget.parentElement?.classList.add('bg-gray-100')
-              e.currentTarget.parentElement?.classList.add('flex')
-              e.currentTarget.parentElement?.classList.add('items-center')
-              e.currentTarget.parentElement?.classList.add('justify-center')
               
-              // สร้าง element แสดงข้อความ
-              const placeholder = document.createElement('span')
-              placeholder.className = 'text-gray-400'
-              placeholder.textContent = 'ไม่มีรูปปก'
-              e.currentTarget.parentElement?.appendChild(placeholder)
+              // ใช้ DOM APIs ในระดับ global แทน
+              const parentEl = e.currentTarget.parentElement
+              if (parentEl) {
+                parentEl.classList.add('bg-gray-100', 'flex', 'items-center', 'justify-center')
+                
+                // สร้าง element แสดงข้อความ
+                const placeholder = window.document.createElement('span')
+                placeholder.className = 'text-gray-400'
+                placeholder.textContent = 'ไม่มีรูปปก'
+                parentEl.appendChild(placeholder)
+              }
             }}
           />
         ) : (
