@@ -16,52 +16,64 @@ export default function DocumentCard({
   onDelete,
   isDeleting
 }: DocumentCardProps) {
-  // State สำหรับเก็บ URL ของรูปภาพ
+  // สถานะสำหรับการจัดการรูปภาพ
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
   
-  // Effect สำหรับอัพเดท URL เมื่อ document เปลี่ยนแปลง
+  // เตรียม URL รูปภาพเมื่อข้อมูล document เปลี่ยนแปลง
   useEffect(() => {
+    setIsLoading(true)
+    setImageError(false)
+    
     if (document.coverImage) {
-      // ตรวจสอบและแก้ไข path ให้ถูกต้อง
+      // ตรวจสอบและปรับปรุง path
       let path = document.coverImage
       if (!path.startsWith('/')) {
         path = `/${path}`
       }
       
-      // เพิ่ม timestamp เพื่อป้องกันการแคช
-      setImageUrl(`${path}?t=${Date.now()}`)
+      // ทดลองโหลดรูปภาพล่วงหน้า
+      const img = new Image()
+      img.src = `${path}?t=${Date.now()}`
+      
+      img.onload = () => {
+        setImageUrl(img.src)
+        setIsLoading(false)
+      }
+      
+      img.onerror = () => {
+        console.error(`ไม่สามารถโหลดรูปภาพได้: ${path}`)
+        setImageError(true)
+        setIsLoading(false)
+      }
     } else {
       setImageUrl(null)
+      setIsLoading(false)
     }
-  }, [document.coverImage, document.id]) // เพิ่ม document.id เพื่อให้ effect ทำงานเมื่อเปลี่ยนเอกสาร
+  }, [document.coverImage, document.id])
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="relative h-32">
-        {imageUrl ? (
+        {isLoading ? (
+          // แสดง Loading state
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div className="animate-pulse flex space-x-1">
+              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+              <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+            </div>
+          </div>
+        ) : imageUrl && !imageError ? (
+          // แสดงรูปภาพเมื่อโหลดสำเร็จ
           <img
             src={imageUrl}
             alt={document.title}
             className="object-cover w-full h-full"
-            onError={(e) => {
-              console.error(`ไม่สามารถโหลดรูปภาพได้: ${imageUrl}`)
-              // เมื่อโหลดรูปไม่สำเร็จ จะแสดงข้อความ "ไม่มีรูปปก" แทน
-              e.currentTarget.style.display = 'none'
-              
-              // ใช้ DOM APIs ในระดับ global แทน
-              const parentEl = e.currentTarget.parentElement
-              if (parentEl) {
-                parentEl.classList.add('bg-gray-100', 'flex', 'items-center', 'justify-center')
-                
-                // สร้าง element แสดงข้อความ
-                const placeholder = window.document.createElement('span')
-                placeholder.className = 'text-gray-400'
-                placeholder.textContent = 'ไม่มีรูปปก'
-                parentEl.appendChild(placeholder)
-              }
-            }}
           />
         ) : (
+          // แสดงข้อความเมื่อไม่มีรูปภาพหรือโหลดไม่สำเร็จ
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
             <span className="text-gray-400">ไม่มีรูปปก</span>
           </div>
