@@ -1,28 +1,29 @@
 // app/dashboard/map/components/DynamicMapView.tsx
-'use client'
+"use client";
 
-import { useState, useEffect, useMemo } from 'react'
-import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet'
-import { CategoryDoc } from '@prisma/client'
-import { DocumentWithCategory, LocationData } from '@/app/types/document'
-import { getDocuments } from '@/app/lib/actions/documents/get'
-import { toast } from 'react-hot-toast'
-import DocumentForm from './DocumentForm'
-import MapMarker from './MapMarker'
-import Legend from './Legend'
-import CategoryFilter from './CategoryFilter'
-import StatsPanel from './StatsPanel'
-import LocationMarker from './LocationMarker'
-import { THAILAND_BOUNDS } from '@/app/utils/colorGenerator'
-import 'leaflet/dist/leaflet.css'
-import CircleLoader from './CircleLoader'
+import { useState, useEffect, useMemo } from "react";
+import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
+import { CategoryDoc } from "@prisma/client";
+import { DocumentWithCategory, LocationData } from "@/app/types/document";
+import { getDocuments } from "@/app/lib/actions/documents/get";
+import { toast } from "react-hot-toast";
+import DocumentForm from "./DocumentForm";
+import MapMarker from "./MapMarker";
+import Legend from "./Legend";
+import CategoryFilter from "./CategoryFilter";
+import StatsPanel from "./StatsPanel";
+import LocationMarker from "./LocationMarker";
+import { THAILAND_BOUNDS } from "@/app/utils/colorGenerator";
+import "leaflet/dist/leaflet.css";
+import CircleLoader from "./CircleLoader";
+import TambonSearch from "./TambonSearch";
 
 // CSS สำหรับ custom marker
 const addCustomStyles = () => {
- if (typeof window === 'undefined') return;
- 
- const style = document.createElement('style');
- style.innerHTML = `
+  if (typeof window === "undefined") return;
+
+  const style = document.createElement("style");
+  style.innerHTML = `
    .custom-marker {
      background: none !important;
      border: none !important;
@@ -39,120 +40,125 @@ const addCustomStyles = () => {
      }
    }
  `;
- document.head.appendChild(style);
- return () => {
-   document.head.removeChild(style);
- };
+  document.head.appendChild(style);
+  return () => {
+    document.head.removeChild(style);
+  };
 };
 
 // Component หลัก
 interface DynamicMapViewProps {
- categories: CategoryDoc[];
- documents?: DocumentWithCategory[];
- selectedCategories?: number[];
- setSelectedCategories?: (ids: number[]) => void;
- simplified?: boolean;
+  categories: CategoryDoc[];
+  documents?: DocumentWithCategory[];
+  selectedCategories?: number[];
+  setSelectedCategories?: (ids: number[]) => void;
+  simplified?: boolean;
 }
 
 export default function DynamicMapView({
- categories,
- documents: externalDocuments,
- selectedCategories: externalSelectedCategories,
- setSelectedCategories: externalSetSelectedCategories,
- simplified = false
+  categories,
+  documents: externalDocuments,
+  selectedCategories: externalSelectedCategories,
+  setSelectedCategories: externalSetSelectedCategories,
+  simplified = false,
 }: DynamicMapViewProps) {
- const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null)
- const [internalDocuments, setInternalDocuments] = useState<DocumentWithCategory[]>([])
- const [internalSelectedCategories, setInternalSelectedCategories] = useState<number[]>([])
- const [isLoading, setIsLoading] = useState(!externalDocuments)
- const [mapStyle] = useState({
-   height: '100%',
-   width: '100%'
- });
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(
+    null
+  );
+  const [internalDocuments, setInternalDocuments] = useState<
+    DocumentWithCategory[]
+  >([]);
+  const [internalSelectedCategories, setInternalSelectedCategories] = useState<
+    number[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(!externalDocuments);
+  const [mapStyle] = useState({
+    height: "100%",
+    width: "100%",
+  });
 
- // ใช้ documents จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
- const documents = externalDocuments || internalDocuments
- 
- // ใช้ selectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
- const selectedCategories = externalSelectedCategories || internalSelectedCategories
- 
- // ใช้ setSelectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
- const setSelectedCategories = externalSetSelectedCategories || setInternalSelectedCategories
+  // ใช้ documents จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+  const documents = externalDocuments || internalDocuments;
 
- // ใช้ custom hook เพื่อจัดการข้อมูล
- const { filteredDocuments, sortedDocuments, processedDocuments } = useProcessedDocuments(
-   documents,
-   selectedCategories
- );
+  // ใช้ selectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+  const selectedCategories =
+    externalSelectedCategories || internalSelectedCategories;
 
- // เพิ่ม CSS styles
- useEffect(() => {
-   const cleanup = addCustomStyles();
-   return cleanup;
- }, []);
+  // ใช้ setSelectedCategories จากภายนอกถ้ามี หรือใช้ภายในถ้าไม่มี
+  const setSelectedCategories =
+    externalSetSelectedCategories || setInternalSelectedCategories;
 
- // โหลดข้อมูลเอกสารเมื่อไม่มี external documents
- useEffect(() => {
-   if (externalDocuments) {
-     setIsLoading(false);
-     return;
-   }
-   
-   const loadDocuments = async () => {
-     try {
-       const docs = await getDocuments()
-       setInternalDocuments(docs)
-       // เริ่มต้นแสดงทุกหมวดหมู่
-       setInternalSelectedCategories(categories.map(c => c.id))
-     } catch (error) {
-       console.error('Error loading documents:', error)
-       toast.error('ไม่สามารถโหลดข้อมูลเอกสารได้')
-     } finally {
-       setIsLoading(false)
-     }
-   }
-   
-   loadDocuments()
- }, [categories, externalDocuments]);
+  // ใช้ custom hook เพื่อจัดการข้อมูล
+  const { filteredDocuments, sortedDocuments, processedDocuments } =
+    useProcessedDocuments(documents, selectedCategories);
 
- if (isLoading) {
-  return <CircleLoader message="กำลังโหลดข้อมูล..." />;
-}
+  // เพิ่ม CSS styles
+  useEffect(() => {
+    const cleanup = addCustomStyles();
+    return cleanup;
+  }, []);
 
- return (
-   <div className="relative w-full h-full">
-     {typeof window !== 'undefined' && (
-      <MapContainer
-        center={THAILAND_BOUNDS.center}
-        zoom={THAILAND_BOUNDS.zoom}
-        style={mapStyle}
-        minZoom={3} 
-        maxZoom={THAILAND_BOUNDS.maxZoom}
-        zoomControl={false}
-      >
-         
-         <TileLayer
-           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-         />
-         
-         {/* แสดงข้อมูลบนแผนที่ */}
-         {processedDocuments.map((doc) => (
-           <MapMarker key={doc.id} document={doc} />
-         ))}
-         
-         {/* แสดง LocationMarker เฉพาะเมื่อไม่ใช่โหมด simplified */}
-         {!simplified && (
-           <LocationMarker onSelectLocation={setSelectedLocation} />
-         )}
-         
-         {/* แสดง Legend เสมอ */}
-         <Legend categories={categories} />
-       </MapContainer>
-     )}
+  // โหลดข้อมูลเอกสารเมื่อไม่มี external documents
+  useEffect(() => {
+    if (externalDocuments) {
+      setIsLoading(false);
+      return;
+    }
 
-     {/* แสดง CategoryFilter เฉพาะเมื่อไม่ใช่โหมด simplified */}
-     {/* {!simplified && (
+    const loadDocuments = async () => {
+      try {
+        const docs = await getDocuments();
+        setInternalDocuments(docs);
+        // เริ่มต้นแสดงทุกหมวดหมู่
+        setInternalSelectedCategories(categories.map((c) => c.id));
+      } catch (error) {
+        console.error("Error loading documents:", error);
+        toast.error("ไม่สามารถโหลดข้อมูลเอกสารได้");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDocuments();
+  }, [categories, externalDocuments]);
+
+  if (isLoading) {
+    return <CircleLoader message="กำลังโหลดข้อมูล..." />;
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {typeof window !== "undefined" && (
+        <MapContainer
+          center={THAILAND_BOUNDS.center}
+          zoom={THAILAND_BOUNDS.zoom}
+          style={mapStyle}
+          minZoom={3}
+          maxZoom={THAILAND_BOUNDS.maxZoom}
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {/* แสดงข้อมูลบนแผนที่ */}
+          {processedDocuments.map((doc) => (
+            <MapMarker key={doc.id} document={doc} />
+          ))}
+
+          {/* แสดง LocationMarker เฉพาะเมื่อไม่ใช่โหมด simplified */}
+          {!simplified && (
+            <LocationMarker onSelectLocation={setSelectedLocation} />
+          )}
+
+          {/* แสดง Legend เสมอ */}
+          <Legend categories={categories} />
+        </MapContainer>
+      )}
+
+      {/* แสดง CategoryFilter เฉพาะเมื่อไม่ใช่โหมด simplified */}
+      {/* {!simplified && (
        <CategoryFilter 
          categories={categories}
          selectedCategories={selectedCategories}
@@ -160,68 +166,82 @@ export default function DynamicMapView({
          documents={documents}
        />
      )} */}
-     
 
+      {/* แสดง DocumentForm เฉพาะเมื่อมีการเลือกตำแหน่งและไม่ใช่โหมด simplified */}
+      {!simplified && selectedLocation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
+          <DocumentForm
+            categories={categories}
+            location={selectedLocation}
+            onClose={() => setSelectedLocation(null)}
+            onSuccess={async () => {
+              try {
+                const newDocs = await getDocuments();
+                if (externalSetSelectedCategories && externalDocuments) {
+                  // ถ้ามีการจัดการจากภายนอก ให้แจ้งเตือนสำเร็จและปิด
+                  setSelectedLocation(null);
+                  toast.success("บันทึกข้อมูลสำเร็จ");
+                } else {
+                  // ถ้าจัดการภายใน ให้อัปเดตข้อมูล
+                  setInternalDocuments(newDocs);
+                  setSelectedLocation(null);
+                  toast.success("บันทึกข้อมูลสำเร็จ");
+                }
+              } catch (error) {
+                console.error("Error reloading documents:", error);
+                toast.error("ไม่สามารถโหลดข้อมูลเอกสารได้");
+              }
+            }}
+          />
+        </div>
+      )}
 
-     {/* แสดง DocumentForm เฉพาะเมื่อมีการเลือกตำแหน่งและไม่ใช่โหมด simplified */}
-     {!simplified && selectedLocation && (
-       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
-         <DocumentForm
-           categories={categories}
-           location={selectedLocation}
-           onClose={() => setSelectedLocation(null)}
-           onSuccess={async () => {
-             try {
-               const newDocs = await getDocuments()
-               if (externalSetSelectedCategories && externalDocuments) {
-                 // ถ้ามีการจัดการจากภายนอก ให้แจ้งเตือนสำเร็จและปิด
-                 setSelectedLocation(null)
-                 toast.success('บันทึกข้อมูลสำเร็จ')
-               } else {
-                 // ถ้าจัดการภายใน ให้อัปเดตข้อมูล
-                 setInternalDocuments(newDocs)
-                 setSelectedLocation(null)
-                 toast.success('บันทึกข้อมูลสำเร็จ')
-               }
-             } catch (error) {
-               console.error('Error reloading documents:', error)
-               toast.error('ไม่สามารถโหลดข้อมูลเอกสารได้')
-             }
-           }}
-         />
-       </div>
-     )}
-   </div>
- )
+      <div className="absolute top-4 left-4 z-[9999]">
+        <TambonSearch
+          onSelectLocation={(locationData) => {
+            // เมื่อเลือกตำบลแล้ว จะได้ lat,lng + ที่อยู่
+            // setSelectedLocation เพื่อเปิดฟอร์มหรือทำอย่างอื่นต่อ
+            setSelectedLocation(locationData);
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 // Custom hook สำหรับจัดการข้อมูลเอกสาร
-function useProcessedDocuments(documents: DocumentWithCategory[], selectedCategories: number[]) {
- // กรองเอกสารตามหมวดหมู่ที่เลือก
- const filteredDocuments = useMemo(() => {
-   return documents.filter(doc => 
-     selectedCategories.length === 0 || selectedCategories.includes(doc.categoryId)
-   )
- }, [documents, selectedCategories])
+function useProcessedDocuments(
+  documents: DocumentWithCategory[],
+  selectedCategories: number[]
+) {
+  // กรองเอกสารตามหมวดหมู่ที่เลือก
+  const filteredDocuments = useMemo(() => {
+    return documents.filter(
+      (doc) =>
+        selectedCategories.length === 0 ||
+        selectedCategories.includes(doc.categoryId)
+    );
+  }, [documents, selectedCategories]);
 
- // เรียงลำดับเอกสารให้ล่าสุดอยู่บนสุด
- const sortedDocuments = useMemo(() => {
-   return [...filteredDocuments].sort((a, b) => 
-     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-   );
- }, [filteredDocuments]);
+  // เรียงลำดับเอกสารให้ล่าสุดอยู่บนสุด
+  const sortedDocuments = useMemo(() => {
+    return [...filteredDocuments].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [filteredDocuments]);
 
- // เพิ่ม flag ไปยังเอกสารล่าสุด
- const processedDocuments = useMemo(() => {
-   return sortedDocuments.map((doc, index) => ({
-     ...doc,
-     isLatest: index === 0
-   }));
- }, [sortedDocuments]);
+  // เพิ่ม flag ไปยังเอกสารล่าสุด
+  const processedDocuments = useMemo(() => {
+    return sortedDocuments.map((doc, index) => ({
+      ...doc,
+      isLatest: index === 0,
+    }));
+  }, [sortedDocuments]);
 
- return {
-   filteredDocuments,
-   sortedDocuments,
-   processedDocuments
- };
+  return {
+    filteredDocuments,
+    sortedDocuments,
+    processedDocuments,
+  };
 }
