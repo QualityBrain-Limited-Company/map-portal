@@ -154,6 +154,12 @@ export default function DynamicMapView({
 
           {/* แสดง Legend เสมอ */}
           <Legend categories={categories} />
+
+          {!simplified && (
+            <div className="absolute top-4 left-4 z-[999]">
+              <TambonSearch />
+            </div>
+          )}
         </MapContainer>
       )}
 
@@ -191,16 +197,6 @@ export default function DynamicMapView({
                 console.error("Error reloading documents:", error);
                 toast.error("ไม่สามารถโหลดข้อมูลเอกสารได้");
               }
-            }}
-          />
-        </div>
-      )}
-
-      {!simplified && (
-        <div className="absolute top-4 left-4 z-[999]">
-          <TambonSearch
-            onSelectLocation={(locationData) => {
-              setSelectedLocation(locationData);
             }}
           />
         </div>

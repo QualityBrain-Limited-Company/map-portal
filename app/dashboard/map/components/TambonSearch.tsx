@@ -1,25 +1,37 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, ChangeEvent } from "react";
-import tambonData from "@/app/data/tambon.json"; // path ที่อ้างไปยังไฟล์ tambon.json
-import { LocationData } from "@/app/types/document";
-import { toast } from "react-hot-toast";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ChangeEvent,
+  useRef,
+} from "react";
+import { useMap } from "react-leaflet";
+import tambonData from "@/app/data/tambon.json";
+// ต้องติดตั้ง leaflet ให้เรียบร้อยแล้ว
+import L from "leaflet";
 
-interface TambonSearchProps {
-  onSelectLocation: (location: LocationData) => void;
-}
-
-/**
- * คอมโพเนนต์สำหรับค้นหาตำบล (ใช้ข้อมูลจาก tambon.json)
- * เมื่อเลือกผลลัพธ์จะเรียก reverse-geocode แล้วส่งข้อมูลกลับไปยัง parent
- */
-export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
+export default function TambonSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null); // ref สำหรับ container
+
+  // ดึง map instance เพื่อใช้คำสั่ง zoom
+  const map = useMap();
 
   // เตรียมข้อมูลตำบลทั้งหมดจาก tambon.json
   const allTambons = tambonData.data;
+
+  // เมื่อ component mount ให้ disable click propagation บน container
+  useEffect(() => {
+    if (containerRef.current) {
+      // ปิดการกระจายอีเวนต์ click และ scroll จาก container นี้
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
 
   // Debounce effect: อัปเดต debouncedSearchTerm หลังจาก searchTerm คงที่ 300ms
   useEffect(() => {
@@ -36,8 +48,7 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
     if (!debouncedSearchTerm) return [];
 
     const lowerTerm = debouncedSearchTerm.toLowerCase();
-
-    return allTambons.filter((item) => {
+    return allTambons.filter((item: any) => {
       const tambonName = item.TAMBON_T?.toLowerCase() || "";
       const amphoeName = item.AMPHOE_T?.toLowerCase() || "";
       const changwatName = item.CHANGWAT_T?.toLowerCase() || "";
@@ -49,57 +60,32 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
     });
   }, [debouncedSearchTerm, allTambons]);
 
-  // ใช้ useCallback สำหรับ handleInputChange
+  // handleInputChange
   const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   }, []);
 
-  // เมื่อคลิกรายการตำบลใน list
+  // เมื่อคลิกรายการตำบลใน list -> ซูมแผนที่ไปตำแหน่งนั้น
   const handleSelectTambon = useCallback(
-    async (item: any) => {
+    (item: any) => {
       const lat = item.LAT;
       const lng = item.LONG;
 
-      try {
-        setIsLoading(true);
-        toast.loading("กำลังดึงข้อมูลที่อยู่...", { id: "location-fetch" });
+      // กำหนดระดับซูมตามต้องการ เช่น 14
+      map.setView([lat, lng], 14);
 
-        const response = await fetch(
-          `/api/gistda/reverse-geocode?lat=${lat}&lng=${lng}`
-        );
-        if (!response.ok) {
-          throw new Error("ไม่สามารถดึงข้อมูลที่อยู่ได้");
-        }
-
-        const addressData = await response.json();
-        toast.dismiss("location-fetch");
-        toast.success("ดึงข้อมูลสำเร็จ");
-
-        onSelectLocation({
-          lat,
-          lng,
-          province: addressData.province,
-          amphoe: addressData.district,
-          district: addressData.subdistrict,
-          geocode: addressData.geocode || 0,
-        });
-
-        // เคลียร์ค่า search
-        setSearchTerm("");
-        setDebouncedSearchTerm("");
-      } catch (error) {
-        console.error(error);
-        toast.dismiss("location-fetch");
-        toast.error("ไม่สามารถดึงข้อมูลที่อยู่ได้ กรุณาลองใหม่");
-      } finally {
-        setIsLoading(false);
-      }
+      // เคลียร์ช่อง search
+      setSearchTerm("");
+      setDebouncedSearchTerm("");
     },
-    [onSelectLocation]
+    [map]
   );
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div
+      ref={containerRef} // ครอบด้วย div ที่เราจะ disable propagation
+      className="relative w-full max-w-sm"
+    >
       {/* ช่องค้นหา */}
       <input
         type="text"
@@ -112,7 +98,7 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
       {/* แสดงรายการที่กรองได้ (ถ้ามีค่าใน debouncedSearchTerm) */}
       {debouncedSearchTerm && filteredTambons.length > 0 && (
         <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-60 overflow-auto shadow-lg">
-          {filteredTambons.map((item, index) => (
+          {filteredTambons.map((item: any, index: number) => (
             <li
               key={`${item.TAMBON_T}-${index}`}
               className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -133,7 +119,7 @@ export default function TambonSearch({ onSelectLocation }: TambonSearchProps) {
       )}
 
       {/* กรณีค้นหาแล้วไม่เจอตำบล */}
-      {debouncedSearchTerm && filteredTambons.length === 0 && !isLoading && (
+      {debouncedSearchTerm && filteredTambons.length === 0 && (
         <div className="absolute z-10 w-full bg-white border rounded-md mt-1 p-3 text-gray-500">
           ไม่พบข้อมูล
         </div>
