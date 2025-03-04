@@ -196,15 +196,15 @@ export default function DynamicMapView({
         </div>
       )}
 
-      <div className="absolute top-4 left-4 z-[9999]">
-        <TambonSearch
-          onSelectLocation={(locationData) => {
-            // เมื่อเลือกตำบลแล้ว จะได้ lat,lng + ที่อยู่
-            // setSelectedLocation เพื่อเปิดฟอร์มหรือทำอย่างอื่นต่อ
-            setSelectedLocation(locationData);
-          }}
-        />
-      </div>
+      {!simplified && (
+        <div className="absolute top-4 left-4 z-[999]">
+          <TambonSearch
+            onSelectLocation={(locationData) => {
+              setSelectedLocation(locationData);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
